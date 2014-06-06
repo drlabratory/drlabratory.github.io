@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:og="http://ogp.me/ns#"
+      xmlns:fb="https://www.facebook.com/2008/fbml">
+<head>
+    <title>Using FreeBayes to measure mitochondrial heteroplasmy - Dr. LabRatOry's Open Science Notebook</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+
+    <!-- Open Graph tags -->
+        <meta property="og:site_name" content="Dr. LabRatOry's Open Science Notebook" />
+            <meta property="og:type" content="article"/>
+            <meta property="og:title" content="Using FreeBayes to measure mitochondrial heteroplasmy"/>
+            <meta property="og:url" content="http://drlabratory.github.io/using-freebayes-measure-hetero.html"/>
+            <meta property="og:description" content="Background I have genomic data collected on 10 strains of Cryptococcus neoformans, a human fungal pathogen. It was collected a few years ago, and is, in a word, terrible. It is SOLiD3 or SOLid4 50bp single end data, 20M-30M reads per sample, but a best half survive quality trimming. In an attempt to salvage something out of the data, I noticed that while coverage of the genome was pretty awful, coverage of the mitochondria wasn&#39;t bad. Even better, while mapping is very sensitive to using the right variant (var neoformans, common name JEC21 vs var grubii, common name H99 ..."/>
+            <meta property="article:published_time" content="2013-02-19" />
+                <meta property="article:section" content="misc" />
+                <meta property="article:author" content="Jeramia Ory" />
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="http://drlabratory.github.io/theme/css/bootstrap.min.css" type="text/css"/>
+
+    <link href="http://drlabratory.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="http://drlabratory.github.io/theme/css/pygments/friendly.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://drlabratory.github.io/theme/css/style.css" type="text/css"/>
+
+
+</head>
+<body>
+
+<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="http://drlabratory.github.io/" class="navbar-brand">
+Dr. LabRatOry's Open Science Notebook            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                        <li class="active">
+                            <a href="http://drlabratory.github.io/category/misc.html">Misc</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="http://drlabratory.github.io/archives.html"><i class="fa fa-th-list"></i><span class="icon-label">Archives</span></a></li>
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-9">
+
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="http://drlabratory.github.io/using-freebayes-measure-hetero.html"
+                       rel="bookmark"
+                       title="Permalink to Using FreeBayes to measure mitochondrial heteroplasmy">
+                        Using FreeBayes to measure mitochondrial heteroplasmy
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2013-02-19T16:00:00"> Tue 19 February 2013</time>
+    </span>
+
+
+
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="background">Background</h3>
+<p>I have genomic data collected on 10 strains of <em>Cryptococcus neoformans</em>, a human fungal pathogen. It was collected a few years ago, and is, in a word, terrible. It is SOLiD3 or SOLid4 50bp single end data, 20M-30M reads per sample, but a best half survive quality trimming. In an attempt to salvage something out of the data, I noticed that while coverage of the genome was pretty awful, coverage of the mitochondria wasn&#39;t bad. Even better, while mapping is very sensitive to using the right variant (<em>var neoformans</em>, common name JEC21 vs <em>var grubii</em>, common name H99), the mitochondrial sequence of H99 appears good enough to map either. To double check, I wondered if NCBI had published their raw data for the JEC21 sequence. I didn&#39;t find it, but what I did find was something even better, a veritable gold mine: 27 strains of <em>C. neoformans</em>, all determined to at least 500X using a combination of paried end and single end Illumina.</p>
+<p>This is an odd case of open science, in that the Broad Institute has deposited the raw read data and I can&#39;t find a manuscript to go with it! I&#39;ve contacted a person at Duke who I think is working on it, but so far (two weeks later) have received no response. As expected from Broad, the data is amazing, and the proper controls have been done, including resequencing the reference strain, H99. Out of curiousity, I decided to download a read set and try mapping it in order to get some experience working with good data.  On pulling up the SAM files in Geneious, I saw something kind of odd: it was obvious that certain positions in the mitochondria contained multiple valid reads for different sequences.  So I did the logical next step; ask someone on twitter for help:  </p>
+<p><blockquote class="twitter-tweet"><p>@<a href="https://twitter.com/drlabratory">drlabratory</a> do you mean single species? there is lots but you need to search for population genetics, phylogeography to find it ..</p>&mdash; Jonathan Eisen (@phylogenomics) <a href="https://twitter.com/phylogenomics/status/292669195919958016">January 19, 2013</a></blockquote></p>
+<p><blockquote class="twitter-tweet"><p>@<a href="https://twitter.com/drlabratory">drlabratory</a> ahh .. you want mitochondrial heteroplasmy</p>&mdash; Jonathan Eisen (@phylogenomics) <a href="https://twitter.com/phylogenomics/status/292677187583234048">January 19, 2013</a></blockquote></p>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>Ok, it wasn&#39;t just anyone. It still blows me away that Jonathan is so generous with his time over twitter.  Anyway, with that simple exchange, a new project (to me, remember I have no idea what the folks at Broad are doing with this data) was born. I hope to address what mitochondrial heteroplasmy is and means (if anything) in the next post, but for the time being I just wanted to know it it existed in significant quantity in <em>C. neoformans</em>. It would be tempting to think so, as mating in this fungi consist of nuclear fusion, but surprisingly... <a href="http://www.ncbi.nlm.nih.gov/pubmed/10688697">no</a>. Even more strange (to me), <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3385124/">mating factor type</a> seems to determine which population &quot;wins&quot; after nuclear fusion. The caveat to those two papers is that they weren&#39;t measured by high coverage sequencing, and I know what I saw. </p>
+<p>After the fold are the programs/strategies for manipulating the raw read data into a Variant Call Format file. My choice of programs are somewhat arbitrary. <a href="https://github.com/ekg/freebayes">FreeBayes</a> has a &quot;ploidy&quot; and &quot;pooled&quot; option that seem to do what I want: treat the mitochondria like a population of bacteria. I used <a href="http://www.novocraft.com/main/index.php">Novoalign</a> because I had a free 30 day trial and wanted to put it through its paces with some good data, and <a href="https://twitter.com/BioMickWatson">Mick Watson</a> sings its praises re:accuracy, which seems relatively important for this analysis. The rest is my kludgy python. This ipython notebook is saved to my public github repository, found <a href="https://github.com/drlabratory/Research_Git/tree/master/sequence_analysis">here</a>.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="data-file-manipulation">Data file manipulation</h2>
+<p>First I needed to get the data, all 100+ GB of it.</p>
+<ul>
+<li>downloaded the entire <a href="http://www.ncbi.nlm.nih.gov/sra/?term=SRP015886">SRP015886</a> experiment runs and converted them to FASTQ using <a href="http://www.ncbi.nlm.nih.gov/Traces/sra/?view=software">fastq-dump</a> in a bash script.</li>
+<li>Ran <a href="http://www.usadellab.org/cms/index.php?page=trimmomatic">Trimmomatic</a> on all with the following options (bash script as well):</li>
+</ul>
+<p>Paired end:  </p>
+<pre><code>java -classpath /usr/local/Trimmomatic-0.22/trimmomatic-0.22.jar \
+    org.usadellab.trimmomatic.TrimmomaticPE -threads 8 -phred33 -trimlog \
+    $dir.trim.log $dir\_1.fastq.gz $dir\_2.fastq.gz \
+        $dir\_paired_1.fq.gz $dir\_unpaired_1.fq.gz \
+        $dir\_paired_2.fq.gz $dir\_unpaired_2.fq.gz \
+    ILLUMINACLIP:../illuminaClip.fa:2:40:15 LEADING:15 \
+    TRAILING:15 SLIDINGWINDOW:4:20 MINLEN:36
+</code></pre><p>Single end:</p>
+<pre><code>java -classpath /usr/local/Trimmomatic-0.22/trimmomatic-0.22.jar \
+    org.usadellab.trimmomatic.TrimmomaticSE -threads 8 -phred33 -trimlog \
+    $dir.trim.log $dir.fastq.gz \
+    $dir\_trimmed.fq.gz  \
+    ILLUMINACLIP:../illuminaClip.fa:2:40:15 LEADING:15 \
+    TRAILING:15 SLIDINGWINDOW:4:20 MINLEN:36
+</code></pre><p>Downloaded the SRP015886.xml from the <a href="http://www.ebi.ac.uk/ena/data/view/SRP015886">ENA</a> at EBI (note to self, always get read data from ENA when possible)</p>
+<p>These were also all done before I figured out that variables are share between cells in iPython notebooks, so reading in the XML file every time in order to do a new analysis is totally uneccesary. But changing it after the fact would be a waste of time. </p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="ran-novoindex-on-the-h99-fasta-file">Ran novoindex on the H99.fasta file</h3>
+<p>Fasta download from <a href="http://www.broadinstitute.org/annotation/genome/cryptococcus_neoformans/MultiHome.html">Broad</a> for both genome and mitochondria, cat&#39;ed together. </p>
+<pre><code>novoindex H99.nix H99.fasta
+</code></pre>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="wrote-python-blurb-to-create-bash-script">Wrote python blurb to create bash script</h3>
+<p>Reads in the XML, looks for all the runs, then extracts read length and sdev when appropriate. Novoalign can use read length and sdev. Mapped all the read files seperately, as <a href="http://www.novocraft.com/wiki/tiki-view_forum_thread.php?topics_offset=1&amp;forumId=1&amp;comments_parentId=535">Novoalign suggests</a> doing that and then merging the SAM files.<br>As it will take 2-3 days, running mapping from within python notebook seemed like a bad idea, hence the scripts.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[107]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&#39;SRP015886.xml&#39;</span><span class="p">)</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;align_all.sh&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">ID</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;IDENTIFIERS&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;PRIMARY_ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">paired</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DESIGN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;LIBRARY_DESCRIPTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;LIBRARY_LAYOUT&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;PAIRED&#39;</span><span class="p">)</span>
+        <span class="n">pdev</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">paired</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;NOMINAL_SDEV&#39;</span><span class="p">]))</span>
+        <span class="n">plength</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">paired</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;NOMINAL_LENGTH&#39;</span><span class="p">]))</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">pdev</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">plength</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;EXPERIMENT_LINKS&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">exps</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DB&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s">&#39;ENA-RUN&#39;</span><span class="p">:</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">lanes</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">pdev</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lanes</span><span class="p">))</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;novoalign -o SAM -d ../H99.nix -f </span><span class="si">%s</span><span class="s">_paired_1.fq.gz </span><span class="si">%s</span><span class="s">_paired_2.fq.gz -i </span><span class="si">%i</span><span class="s">,</span><span class="si">%i</span><span class="s"> &gt; </span><span class="si">%s</span><span class="s">_H99.SAM </span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> \
+                            <span class="p">(</span><span class="n">lanes</span><span class="p">,</span><span class="n">lanes</span><span class="p">,</span><span class="n">plength</span><span class="p">,</span><span class="n">pdev</span><span class="p">,</span><span class="n">lanes</span><span class="p">))</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lanes</span><span class="p">))</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;novoalign -o SAM -d ../H99.nix -f </span><span class="si">%s</span><span class="s">_trimmed.fq.gz &gt; </span><span class="si">%s</span><span class="s">_H99.SAM </span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> \
+                            <span class="p">(</span><span class="n">lanes</span><span class="p">,</span><span class="n">lanes</span><span class="p">))</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="screwed-up-and-missed-srr646261-srr646262-should-be-srr646261-srr646262-">Screwed up and missed SRR646261-SRR646262, should be SRR646261,SRR646262.</h3>
+<p>For reasons that aren&#39;t clear, certain runs are denoted in the XML file as a range (SRR646261-SRR646262 in this example, but there are others), while most are a list.<br>Had to run from that point on.  Now need to make a list of samples and their associated SAM/BAM files.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[120]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&#39;SRP015886.xml&#39;</span><span class="p">)</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+<span class="n">samples</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">ID</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DESIGN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;SAMPLE_DESCRIPTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;refname&#39;</span><span class="p">]</span>
+    <span class="n">cellsplit</span> <span class="o">=</span> <span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">cellsplit</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cellsplit</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;EXPERIMENT_LINKS&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">exps</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DB&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s">&#39;ENA-RUN&#39;</span><span class="p">:</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;sam_merge.sh&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">keys</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;mkdir </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">sams</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dirs</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="n">keys</span><span class="p">]:</span>
+        <span class="n">sams</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirs</span><span class="o">+</span><span class="s">&quot;.bam&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">dirs</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools view -bS </span><span class="si">%s</span><span class="s">_H99.SAM &gt; </span><span class="si">%s</span><span class="s">_H99.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dirs</span><span class="p">,</span><span class="n">dirs</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;rm </span><span class="si">%s</span><span class="s">_H99.SAM</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">dirs</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;ln -s </span><span class="si">%s</span><span class="s">_H99.bam ../</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dirs</span><span class="p">,</span><span class="n">keys</span><span class="p">,</span><span class="n">dirs</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools merge </span><span class="si">%s</span><span class="s">.bam </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sams</span><span class="p">)))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools sort </span><span class="si">%s</span><span class="s">.bam </span><span class="si">%s</span><span class="s">.sorted</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">keys</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools index </span><span class="si">%s</span><span class="s">.sorted.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Damnit, apparently that link command doesn&#39;t work, need to write another cleanup script.<br>I&#39;ve also noticed that the forum suggested sorting, then merging. This merges, then sorts. Hrm.<br>The new BAM files are named from the XML, by strain name.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[123]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&#39;SRP015886.xml&#39;</span><span class="p">)</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+<span class="n">samples</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">ID</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DESIGN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;SAMPLE_DESCRIPTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;refname&#39;</span><span class="p">]</span>
+    <span class="n">cellsplit</span> <span class="o">=</span> <span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">cellsplit</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cellsplit</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;EXPERIMENT_LINKS&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">exps</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DB&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s">&#39;ENA-RUN&#39;</span><span class="p">:</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;sam_cleanup.sh&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">keys</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>
+    <span class="n">sams</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dirs</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">[</span><span class="n">keys</span><span class="p">]:</span>
+        <span class="n">sams</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirs</span><span class="o">+</span><span class="s">&quot;_H99.bam&quot;</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools merge </span><span class="si">%s</span><span class="s">.bam </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sams</span><span class="p">)))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools sort </span><span class="si">%s</span><span class="s">.bam </span><span class="si">%s</span><span class="s">.sorted</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">keys</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools index </span><span class="si">%s</span><span class="s">.sorted.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="running-freebayes-with-ploidy-4">Running Freebayes with ploidy 4</h3>
+<p>Before finding out about a different strategy below, tried --ploidy 4</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[125]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&#39;SRP015886.xml&#39;</span><span class="p">)</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+<span class="n">samples</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">ID</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DESIGN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;SAMPLE_DESCRIPTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;refname&#39;</span><span class="p">]</span>
+    <span class="n">cellsplit</span> <span class="o">=</span> <span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">cellsplit</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cellsplit</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;EXPERIMENT_LINKS&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">exps</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DB&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s">&#39;ENA-RUN&#39;</span><span class="p">:</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;variant_call.sh&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">keys</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools view -b </span><span class="si">%s</span><span class="s">.sorted.bam H99_mitochondria &gt; </span><span class="si">%s</span><span class="s">_mito.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">keys</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;samtools index </span><span class="si">%s</span><span class="s">_mito.bam</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;freebayes -0 -b </span><span class="si">%s</span><span class="s">_mito.bam -f ../H99_mitochondria.fasta -v </span><span class="si">%s</span><span class="s">_mito_ploidy4.vcf --ploidy 4 --min-alternate-fraction 0.01 --max-complex-gap 50</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">keys</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="different-freebayes-run">Different FreeBayes run</h3>
+<p>According to this wiki at <a href="https://wikis.utexas.edu/display/bioiteam/Genome+variation+in+mixed+samples+(FreeBayes,+deepSNV">UTexas</a>), mixed bacteria can be tested using --ploidy 100 and --pooled. This matches what I&#39;ve been thinking in the first place: just treat all the mitochondria in the cell as a mixed population of bacteria.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[126]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb"><span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&#39;SRP015886.xml&#39;</span><span class="p">)</span>
+<span class="n">root</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+
+<span class="n">samples</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">ID</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DESIGN&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;SAMPLE_DESCRIPTOR&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&#39;refname&#39;</span><span class="p">]</span>
+    <span class="n">cellsplit</span> <span class="o">=</span> <span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">cellsplit</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cellsplit</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">links</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;EXPERIMENT_LINKS&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">exps</span> <span class="ow">in</span> <span class="n">links</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;DB&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s">&#39;ENA-RUN&#39;</span><span class="p">:</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="n">exps</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;XREF_LINK&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;ID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">samples</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;freebayes100.sh&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;#!/bin/bash</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">keys</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">keys</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;freebayes -b </span><span class="si">%s</span><span class="s">_mito.bam -f ../H99_mitochondria.fasta -v </span><span class="si">%s</span><span class="s">_mito_ploidy100.vcf --ploidy 100 --pooled --min-alternate-total 3 --max-complex-gap 50</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">keys</span><span class="p">))</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;cd ..</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>OK! Now I have 27 vcf files, I need a way to visualize what is going on. Tomorrow I will post my visualization of the data in iPython notebook and matplotlib.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight-ipynb"><pre class="ipynb">
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div></p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3 well well-sm" id="sidebar">
+
+<aside>
+    <section>
+        <ul class="list-group list-group-flush">
+                <li class="list-group-item"><h4><i class="fa fa-home fa-lg"></i><span class="icon-label">Social</span></h4>
+                  <ul class="list-group" id="social">
+                    <li class="list-group-item"><a href="http://twitter.com/drlabratory"><i class="fa fa-twitter-square fa-lg"></i> twitter</a></li>
+                    <li class="list-group-item"><a href="https://www.linkedin.com/in/jeramia"><i class="fa fa-linkedin-square fa-lg"></i> linkedin</a></li>
+                    <li class="list-group-item"><a href="http://github.com/DrLabRatOry"><i class="fa fa-github-square fa-lg"></i> github</a></li>
+                  </ul>
+                </li>
+
+
+
+                <li class="list-group-item"><a href="http://drlabratory.github.io/"><h4><i class="fa fa-tags fa-lg"></i><span class="icon-label">Tags</span></h4></a>
+                    <ul class="list-group " id="tags">
+                    </ul>
+                </li>    
+
+    <li class="list-group-item"><h4><i class="fa fa-github fa-lg"></i><span class="icon-label">GitHub Repos</span></h4>
+        <div id="gh_repos">
+            <p class="list-group-item">Status updating...</p>
+        </div>
+    </li>
+
+        </ul>
+    </section>
+
+</aside>        </div>
+    </div>
+</div>
+<footer>
+   <div class="container">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2013 Jeramia Ory
+            &middot; Powered by <a href="https://github.com/DandyDev/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="http://drlabratory.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="http://drlabratory.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="http://drlabratory.github.io/theme/js/respond.min.js"></script>
+
+    <!-- GitHub JS -->
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if (!window.jXHR) {
+                var jxhr = document.createElement('script');
+                jxhr.type = 'text/javascript';
+                jxhr.src = 'http://drlabratory.github.io/theme/js/jXHR.js';
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(jxhr, s);
+            }
+
+            github.showRepos({
+                user: 'DrLabRatOry',
+                count: 5,
+                skip_forks: false,
+                target: '#gh_repos'
+            });
+        });
+    </script>
+    <script src="http://drlabratory.github.io/theme/js/github.js" type="text/javascript"></script>
+    <!-- End GitHub JS Code -->
+</body>
+</html>
