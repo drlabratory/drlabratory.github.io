@@ -60,7 +60,14 @@ Dr. LabRatOry's Open Science Notebook            </a>
 
             <article>
                 <h2><a href="http://drlabratory.github.io/analyzing-mito-hetero.html">Analyzing mitochondiral heteroplasmy of <i>C. neoformans</i></a></h2>
-                <div class="summary"><p>{% notebook analyzing-mito-hetero.ipynb %}</p>
+                <div class="summary"><p>Strains were aligned and analyzed as <a href="using-freebayes-
+measure-hetero.html">previously described</a>. The VCF files contain a wealth of information, some of
+which I'm not entirely sure what it means.  Therefore I'll limit my analysis to
+2 basic pieces of information: where the SNP is <code>(record.POS)</code> and the number of
+"alternate" (not exactly sure what alternate means in this context) alleles
+called <code>(record.INFO['AC'])</code>. I could change it to <code>record.INFO['AF']</code> because
+it's a float of the frequency, but having it in the range of 1-100 works pretty
+well for visualization. These python ...</p>
                     <a class="btn btn-default btn-xs" href="http://drlabratory.github.io/analyzing-mito-hetero.html">more ...</a>
                 </div>
             </article>

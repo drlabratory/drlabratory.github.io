@@ -15,7 +15,7 @@
             <meta property="og:type" content="article"/>
             <meta property="og:title" content="Analyzing mitochondiral heteroplasmy of C. neoformans"/>
             <meta property="og:url" content="http://drlabratory.github.io/analyzing-mito-hetero.html"/>
-            <meta property="og:description" content="{% notebook analyzing-mito-hetero.ipynb %}"/>
+            <meta property="og:description" content="Strains were aligned and analyzed as previously described. The VCF files contain a wealth of information, some of which I&#39;m not entirely sure what it means. Therefore I&#39;ll limit my analysis to 2 basic pieces of information: where the SNP is (record.POS) and the number of &#34;alternate&#34; (not exactly sure what alternate means in this context) alleles called (record.INFO[&#39;AC&#39;]). I could change it to record.INFO[&#39;AF&#39;] because it&#39;s a float of the frequency, but having it in the range of 1-100 works pretty well for visualization. These python ..."/>
             <meta property="article:published_time" content="2013-02-21" />
                 <meta property="article:section" content="misc" />
                 <meta property="article:author" content="Jeramia Ory" />
@@ -86,7 +86,285 @@ Dr. LabRatOry's Open Science Notebook            </a>
     
 </footer><!-- /.post-info -->                    </div>
                 </div>
-                <p>{% notebook analyzing-mito-hetero.ipynb %}</p>
+                <p>Strains were aligned and analyzed as <a href="using-freebayes-
+measure-hetero.html">previously described</a>. The VCF files contain a wealth of information, some of
+which I'm not entirely sure what it means.  Therefore I'll limit my analysis to
+2 basic pieces of information: where the SNP is <code>(record.POS)</code> and the number of
+"alternate" (not exactly sure what alternate means in this context) alleles
+called <code>(record.INFO['AC'])</code>. I could change it to <code>record.INFO['AF']</code> because
+it's a float of the frequency, but having it in the range of 1-100 works pretty
+well for visualization. These python blurbs utilize
+<a href="https://github.com/jamescasbon/PyVCF">PyVCF</a>.</p>
+<h3>Step 1: where are the SNP's?</h3>
+<p>First I just want to get an idea of how diverse the 27 samples are, so I read in
+all the VCF files, and then store their position in a big list. After that I
+plot them as a histogram. I played around with the number of bins to optimize
+for aesthetics and plotting performance. The overall shape doesn't change much
+if you plot 25k bins vs 2500 bins vs what I settled on, 253 bins (roughly 100 bp
+per bin). Plus, at 25k and 2500, the colors don't really show up, and that will
+come in handy for overlaying information later.</p>
+<div class="highlight"><pre><span class="n">import</span> <span class="n">vcf</span><span class="p">,</span> <span class="n">os</span>
+<span class="n">import</span> <span class="n">numpy</span> <span class="n">as</span> <span class="n">np</span>
+<span class="n">import</span> <span class="n">matplotlib</span><span class="p">.</span><span class="n">pyplot</span> <span class="n">as</span> <span class="n">plt</span>
+<span class="n">import</span> <span class="n">matplotlib</span><span class="p">.</span><span class="n">gridspec</span> <span class="n">as</span> <span class="n">gridspec</span>
+
+<span class="n">fig1</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">snp_plot</span> <span class="o">=</span> <span class="n">fig1</span><span class="p">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+
+<span class="n">flist</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">listdir</span><span class="p">(</span><span class="err">&#39;</span><span class="p">..</span><span class="o">/</span><span class="n">mito_vcf</span><span class="err">&#39;</span><span class="p">)</span>
+
+<span class="n">snp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">snp_dp</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">files</span> <span class="n">in</span> <span class="n">flist</span><span class="o">:</span>
+    <span class="n">vcf_reader</span> <span class="o">=</span> <span class="n">vcf</span><span class="p">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">open</span><span class="p">(</span><span class="err">&#39;</span><span class="p">..</span><span class="o">/</span><span class="n">mito_vcf</span><span class="o">/%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="n">files</span><span class="p">,</span> <span class="sc">&#39;r&#39;</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="n">in</span> <span class="n">vcf_reader</span><span class="o">:</span>
+        <span class="n">snp</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">POS</span><span class="p">)</span>
+        <span class="n">snp_dp</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">INFO</span><span class="p">[</span><span class="err">&#39;</span><span class="n">DP</span><span class="err">&#39;</span><span class="p">])</span>
+
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">red</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">SNP</span> <span class="n">frequency</span><span class="err">&#39;</span><span class="p">)</span> <span class="err">#</span><span class="n">this</span> <span class="n">gives</span> <span class="o">~</span><span class="mi">100</span><span class="n">bp</span> <span class="n">per</span> <span class="n">bin</span>
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Sequence</span> <span class="n">Position</span><span class="p">,</span> <span class="n">all</span> <span class="n">SNPs</span><span class="p">.</span> <span class="n">Median</span> <span class="n">read</span> <span class="n">depth</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span><span class="p">,</span> <span class="n">range</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span> <span class="n">to</span> <span class="o">%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">median</span><span class="p">(</span><span class="n">snp_dp</span><span class="p">),</span> <span class="n">min</span><span class="p">(</span><span class="n">snp_dp</span><span class="p">),</span> <span class="n">max</span><span class="p">(</span><span class="n">snp_dp</span><span class="p">)))</span>
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">count</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">snp_plot</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_2_0.png" /></p>
+<h3>We have differences!</h3>
+<p>So there are definitely hot spots for sequence diversity, which is interesting
+in and of itself. But I want to know if there are multiple sequences seen at
+those sites at a frequency of 1% or greater. Also notice that the read depth is
+rather insane, so we can be confident that for most sites we have ample
+observations to call 1% sequence differences.</p>
+<p>Now I want to see which of these SNP sites are heteroplsmic, so I replot,
+tossing anything with an AC value of 100 (ie - just a SNP, not a heteroplasmic
+SNP).</p>
+<div class="highlight"><pre><span class="n">h_snp</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">fig2</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">hsnp_plot</span> <span class="o">=</span> <span class="n">fig2</span><span class="p">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+<span class="n">hsnp_dp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">hsnp_ac</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">files</span> <span class="n">in</span> <span class="n">flist</span><span class="o">:</span>
+    <span class="n">vcf_reader</span> <span class="o">=</span> <span class="n">vcf</span><span class="p">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">open</span><span class="p">(</span><span class="err">&#39;</span><span class="p">..</span><span class="o">/</span><span class="n">mito_vcf</span><span class="o">/%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="n">files</span><span class="p">,</span> <span class="sc">&#39;r&#39;</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">record</span> <span class="n">in</span> <span class="n">vcf_reader</span><span class="o">:</span>
+        <span class="k">if</span> <span class="n">record</span><span class="p">.</span><span class="n">INFO</span><span class="p">[</span><span class="err">&#39;</span><span class="n">AC</span><span class="err">&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="o">:</span> <span class="err">#</span> <span class="n">only</span> <span class="n">want</span> <span class="n">heteroplasmic</span> <span class="n">sites</span>
+            <span class="n">h_snp</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">POS</span><span class="p">)</span>
+            <span class="n">hsnp_dp</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">INFO</span><span class="p">[</span><span class="err">&#39;</span><span class="n">DP</span><span class="err">&#39;</span><span class="p">])</span>
+            <span class="n">hsnp_ac</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">.</span><span class="n">INFO</span><span class="p">[</span><span class="err">&#39;</span><span class="n">AC</span><span class="err">&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">red</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">All</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span> <span class="err">#</span><span class="n">this</span> <span class="n">gives</span> <span class="o">~</span><span class="mi">100</span><span class="n">bp</span> <span class="n">per</span> <span class="n">bin</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">h_snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">blue</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">Variable</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Sequence</span> <span class="n">Position</span><span class="p">,</span> <span class="n">heteroplasmic</span> <span class="n">SNPs</span><span class="p">.</span> <span class="n">Median</span> <span class="n">read</span> <span class="n">depth</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span><span class="p">,</span> <span class="n">range</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span> <span class="n">to</span> <span class="o">%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">median</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">min</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">max</span><span class="p">(</span><span class="n">snp</span><span class="p">)))</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">count</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">hsnp_plot</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_5_0.png" /></p>
+<h3>Still differences!</h3>
+<p>Curioser and curioser. As is clear from the overlayed plot, most of the
+differences seen are not merely single site SNP's, they also have some degree of
+sequence variation. The most obvious dropout is the big spike around 2000, which
+demonstrates the need for controls: it's a sequencing error in the published H99
+reference. Even better, the median read depth goes up when you toss non-variable
+sites.</p>
+<p>Just to make sure there isn't some population of low read depth sites lurking,
+I've plotted histograms before and after culling, and scatter plots of number of
+alleles called vs read depth.</p>
+<div class="highlight"><pre><span class="n">hist_plot</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">9</span><span class="p">))</span>
+<span class="n">gs</span> <span class="o">=</span> <span class="n">gridspec</span><span class="p">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+<span class="n">dp_hist</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">dp_hist</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">snp_dp</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">All</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">dp_hist</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">hsnp_dp</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">Heteroplasmic</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="cp"># dp_hist.set_xlim(0, 10000)</span>
+<span class="n">dp_hist</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">dp_scatter</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">hsnp_ac</span><span class="p">,</span> <span class="n">hsnp_dp</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">80000</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Number</span> <span class="n">of</span> <span class="n">alternate</span> <span class="n">called</span> <span class="n">alleles</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Read</span> <span class="n">depth</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="err">&#39;</span><span class="n">log</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">dp_scatter</span><span class="p">.</span><span class="n">grid</span><span class="p">(</span><span class="n">True</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_7_0.png" /></p>
+<h3>Yes, but just how variable are they?</h3>
+<p>While interesting, the map of variable SNP's doesn't tell me <strong>how</strong> variable
+they are, just <strong>if</strong> they are. But, I do have the number of alternate alleles
+called, so I should be able to plot the SNP positions in x and y, and vary the
+size of the marker by how variant they are. The radii calculation may look odd,
+but it eliminates FreeBayes' arbitrary calling of what an "alternate" is. If
+there are two major alleles, saying one site is 75% one variant is the same as
+saying it is 25% the other. The multiplication is just a factor to get it to pop
+a little more.</p>
+<div class="highlight"><pre><span class="s-Atom">import</span> <span class="s-Atom">math</span>
+<span class="s-Atom">fig3</span> <span class="o">=</span> <span class="s-Atom">plt</span><span class="p">.</span><span class="nf">figure</span><span class="p">(</span><span class="s-Atom">figsize=</span><span class="p">(</span><span class="m">18</span><span class="p">,</span> <span class="m">5</span><span class="p">))</span>
+<span class="s-Atom">het_plot</span> <span class="o">=</span> <span class="s-Atom">fig3</span><span class="p">.</span><span class="nf">add_subplot</span><span class="p">(</span><span class="m">111</span><span class="p">)</span>
+
+<span class="s-Atom">hx</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="s-Atom">hy</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="s-Atom">hr</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="s-Atom">ycount</span> <span class="o">=</span> <span class="m">1</span>
+<span class="s-Atom">strain_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="s-Atom">for</span> <span class="s-Atom">files</span> <span class="s-Atom">in</span> <span class="nn">flist</span><span class="p">:</span>
+    <span class="s-Atom">vcf_reader</span> <span class="o">=</span> <span class="s-Atom">vcf</span><span class="p">.</span><span class="nv">Reader</span><span class="p">(</span><span class="nf">open</span><span class="p">(</span><span class="s-Atom">&#39;../mito_vcf/%s&#39;</span> <span class="c1">% files, &#39;r&#39;))</span>
+    <span class="s-Atom">record_name</span> <span class="o">=</span> <span class="s-Atom">files</span><span class="p">[:-</span><span class="m">19</span><span class="p">]</span>
+    <span class="s-Atom">strain_dict</span><span class="p">[</span><span class="s-Atom">ycount</span><span class="p">]</span><span class="o">=</span><span class="s-Atom">record_name</span>
+    <span class="s-Atom">for</span> <span class="s-Atom">record</span> <span class="s-Atom">in</span> <span class="s-Atom">vcf_reader:</span>
+        <span class="s-Atom">if</span> <span class="s-Atom">record</span><span class="p">.</span><span class="nv">INFO</span><span class="p">[</span><span class="s-Atom">&#39;AC&#39;</span><span class="p">][</span><span class="m">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="m">100</span><span class="s-Atom">:</span> <span class="s-Atom">#</span> <span class="s-Atom">only</span> <span class="s-Atom">want</span> <span class="s-Atom">heteroplasmic</span> <span class="s-Atom">sites</span>
+            <span class="s-Atom">hx</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="s-Atom">record</span><span class="p">.</span><span class="nv">POS</span><span class="p">)</span>
+            <span class="s-Atom">hy</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="s-Atom">ycount</span><span class="p">)</span>
+            <span class="s-Atom">radii</span> <span class="o">=</span> <span class="m">3</span><span class="s-Atom">*</span><span class="p">(</span><span class="m">50</span><span class="s-Atom">-</span><span class="p">(</span><span class="s-Atom">math</span><span class="p">.</span><span class="nf">fabs</span><span class="p">(</span><span class="s-Atom">record</span><span class="p">.</span><span class="nv">INFO</span><span class="p">[</span><span class="s-Atom">&#39;AC&#39;</span><span class="p">][</span><span class="m">0</span><span class="p">]</span><span class="o">-</span><span class="m">50</span><span class="p">)))</span>
+            <span class="s-Atom">hr</span><span class="p">.</span><span class="nf">append</span><span class="p">(</span><span class="s-Atom">radii</span><span class="p">)</span> <span class="s-Atom">#</span> <span class="s-Atom">make</span> <span class="s-Atom">the</span> <span class="s-Atom">radius</span> <span class="s-Atom">bigger</span> <span class="s-Atom">the</span> <span class="s-Atom">lower</span> <span class="s-Atom">the</span> <span class="s-Atom">allele</span> <span class="s-Atom">count</span>
+    <span class="s-Atom">ycount</span> <span class="o">=</span> <span class="s-Atom">ycount</span><span class="o">+</span><span class="m">1</span>
+
+<span class="s-Atom">het_plot</span><span class="p">.</span><span class="nf">scatter</span><span class="p">(</span><span class="s-Atom">hx</span><span class="p">,</span> <span class="s-Atom">hy</span><span class="p">,</span> <span class="s-Atom">c=&#39;purple&#39;</span><span class="p">,</span> <span class="s-Atom">s</span><span class="o">=</span><span class="s-Atom">hr</span><span class="p">,</span> <span class="s-Atom">alpha</span><span class="o">=</span><span class="m">0</span><span class="p">.</span><span class="m">5</span><span class="p">,</span> <span class="s-Atom">edgecolor=&#39;none&#39;</span><span class="p">)</span>
+<span class="s-Atom">het_plot</span><span class="p">.</span><span class="nf">set_ylim</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">27</span><span class="p">)</span>
+<span class="s-Atom">het_plot</span><span class="p">.</span><span class="nf">set_xlim</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">25000</span><span class="p">)</span>
+<span class="s-Atom">het_plot</span><span class="p">.</span><span class="nf">set_xlabel</span><span class="p">(</span><span class="s-Atom">&#39;Sequence Position, radius indicates percentage variation&#39;</span><span class="p">)</span>
+<span class="s-Atom">het_plot</span><span class="p">.</span><span class="nf">set_ylabel</span><span class="p">(</span><span class="s-Atom">&#39;Strain&#39;</span><span class="p">)</span>
+<span class="s-Atom">plt</span><span class="p">.</span><span class="nf">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_9_0.png" /></p>
+<h3>Oooo... pretty</h3>
+<p>I will fully admit to doing a little dance when this figure rendered for the
+first time. Just look at it, how can any self respecting data junkie not think
+that it cool? There are some obvious patterns that show up. It would appear that
+there are both <strong>strains</strong> with high heteroplasmy (strains 10, 14 and 22) and
+<strong>positions</strong> with high heteroplasmy (5000, 6000 and the stretch between 15k and
+20k).</p>
+<p>Next up, it would be nice to know where these fall, so let's read in the gene
+annotation and make a crude histogram of where the exons are.</p>
+<div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="err">&#39;</span><span class="p">..</span><span class="o">/</span><span class="n">H99_mitochondria</span><span class="p">.</span><span class="n">gtf</span><span class="err">&#39;</span><span class="p">,</span> <span class="sc">&#39;r&#39;</span><span class="p">)</span>
+
+<span class="n">ex</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">ey</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">line</span> <span class="n">in</span> <span class="n">f</span><span class="o">:</span> <span class="err">#</span> <span class="n">make</span> <span class="n">a</span> <span class="n">histogram</span> <span class="n">that</span> <span class="n">equals</span> <span class="n">the</span> <span class="n">exon</span> <span class="n">boundries</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="err">&#39;</span><span class="n">exon</span><span class="err">&#39;</span><span class="o">:</span>
+        <span class="n">count</span> <span class="o">=</span>  <span class="kt">int</span><span class="p">(</span><span class="n">line</span><span class="p">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">stop</span> <span class="o">=</span> <span class="kt">int</span><span class="p">(</span><span class="n">line</span><span class="p">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">while</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="o">:</span>
+            <span class="n">ex</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">count</span><span class="p">)</span>
+            <span class="n">ey</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="n">count</span><span class="o">+</span><span class="mi">1</span>
+
+<span class="n">fig4</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">exon</span> <span class="o">=</span> <span class="n">fig4</span><span class="p">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+
+<span class="n">exon</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">green</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">exon</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Exons</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">exon</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">exon</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_11_0.png" /></p>
+<p>If my matplotlib-fu was better, I'm sure I could create an axis with gene labels
+and everything. But, it ain't.</p>
+<h3>Let's put it all together, shall we?</h3>
+<div class="highlight"><pre><span class="n">import</span> <span class="n">sys</span>
+
+<span class="n">all_fig</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span> 
+<span class="n">gs</span> <span class="o">=</span> <span class="n">gridspec</span><span class="p">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> 
+<span class="n">asnp_plot</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">red</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">SNP</span> <span class="n">frequency</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Sequence</span> <span class="n">Position</span><span class="p">,</span> <span class="n">all</span> <span class="n">SNPs</span><span class="p">.</span> <span class="n">Median</span> <span class="n">read</span> <span class="n">depth</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span><span class="p">,</span> <span class="n">range</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span> <span class="n">to</span> <span class="o">%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">median</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">min</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">max</span><span class="p">(</span><span class="n">snp</span><span class="p">)))</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">count</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">asnp_plot</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">ahsnp_plot</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">red</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">all</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span> <span class="err">#</span><span class="n">this</span> <span class="n">gives</span> <span class="o">~</span><span class="mi">100</span><span class="n">bp</span> <span class="n">per</span> <span class="n">bin</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">h_snp</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">blue</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="err">&#39;</span><span class="n">variable</span> <span class="n">SNPs</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Sequence</span> <span class="n">Position</span><span class="p">,</span> <span class="n">heteroplasmic</span> <span class="n">SNPs</span><span class="p">.</span> <span class="n">Median</span> <span class="n">read</span> <span class="n">depth</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span><span class="p">,</span> <span class="n">range</span> <span class="o">=</span> <span class="o">%</span><span class="n">s</span> <span class="n">to</span> <span class="o">%</span><span class="n">s</span><span class="err">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">median</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">min</span><span class="p">(</span><span class="n">snp</span><span class="p">),</span> <span class="n">max</span><span class="p">(</span><span class="n">snp</span><span class="p">)))</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">count</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">ahsnp_plot</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+
+<span class="n">ahet_plot</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">ahet_plot</span><span class="p">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">hx</span><span class="p">,</span> <span class="n">hy</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="err">&#39;</span><span class="n">purple</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">hr</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">ahet_plot</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">)</span>
+<span class="n">ahet_plot</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+<span class="n">ahet_plot</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Sequence</span> <span class="n">Position</span><span class="p">,</span> <span class="n">radius</span> <span class="n">indicates</span> <span class="n">percentage</span> <span class="n">variation</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">ahet_plot</span><span class="p">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Strain</span><span class="err">&#39;</span><span class="p">)</span>
+
+<span class="n">aexon</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">aexon</span><span class="p">.</span><span class="n">hist</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="mi">253</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">green</span><span class="err">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="err">&#39;</span><span class="n">none</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">aexon</span><span class="p">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="err">&#39;</span><span class="n">Exons</span><span class="err">&#39;</span><span class="p">)</span>
+<span class="n">aexon</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">aexon</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="n">ncount</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">print</span> <span class="s">&quot;Strain numbers with names&quot;</span>
+<span class="n">print</span> <span class="s">&quot;-------------------------&quot;</span>
+<span class="k">for</span> <span class="n">keys</span> <span class="n">in</span> <span class="n">strain_dict</span><span class="o">:</span>
+    <span class="k">if</span> <span class="n">ncount</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">0</span><span class="o">:</span>
+        <span class="n">sys</span><span class="p">.</span><span class="n">stdout</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;%s) %s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">strain_dict</span><span class="p">[</span><span class="n">keys</span><span class="p">]))</span>
+    <span class="nl">else:</span>
+        <span class="n">sys</span><span class="p">.</span><span class="n">stdout</span><span class="p">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;%s) %s</span><span class="se">\t</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span><span class="n">strain_dict</span><span class="p">[</span><span class="n">keys</span><span class="p">]))</span>
+    <span class="n">ncount</span><span class="o">+=</span><span class="mi">1</span>
+</pre></div>
+
+
+<p><img alt="png" src="analyzing-mito-hetero_files/analyzing-mito-hetero_13_0.png" /></p>
+<div class="highlight"><pre><span class="gh">Strain numbers with names</span>
+<span class="gh">-------------------------</span>
+<span class="m">1)</span> 125.91   2) A2_102_5 3) AD1_7a   4) AD1_83a  5) AD2_60a
+<span class="m">6)</span> Br795    7) Bt120    8) Bt15 9) Bt1  10) Bt206
+<span class="m">11)</span> Bt63    12) Bt85    13) C23 14) C45 15) C8
+<span class="m">16)</span> CHC193  17) D17_1   18) Gb118   19) H99 20) MW_RSA1955
+<span class="m">21)</span> MW_RSA36    22) MW_RSA852   23) Th84    24) Tu259_1 25) Tu401_1
+<span class="m">26)</span> Ze90_1
+</pre></div>
+
+
+<p>This is just everything put together, with the additional information about the
+strain names. So from this plot, as the last, we can tell that strains Bt206,
+C23 and MW_RSA852 have the greatest variability/heteroplasmy. Qualitatively, at
+least. I need a way to quantify things a bit better.</p>
+<h3>But wait, there's more!</h3>
+<p>So I was curious how this would be reflected in a traditional assessment of
+diversity. So I called a consensus sequence in samtools for all 27 strains,
+using the suggested command in the
+<a href="http://samtools.sourceforge.net/mpileup.shtml">documentation</a>:</p>
+<div class="highlight"><pre><span class="n">samtools</span> <span class="n">mpileup</span> <span class="o">-</span><span class="n">uf</span> <span class="n">ref</span><span class="p">.</span><span class="n">fa</span> <span class="n">aln</span><span class="p">.</span><span class="n">bam</span> <span class="o">|</span> <span class="n">bcftools</span> <span class="n">view</span> <span class="o">-</span><span class="n">cg</span> <span class="o">-</span> <span class="o">|</span> <span class="n">vcfutils</span><span class="p">.</span><span class="n">pl</span>
+</pre></div>
+
+
+<p>vcf2fq &gt; cns.fq</p>
+<p>I then aligned them all in MAFFT using the L-INS-i (more accurate) option, and
+loaded that alignment into <a href="http://www.megasoftware.net">MEGA5</a> and calculated a
+Maximum Likelihood tree using the default options with 1000 bootstrap
+replications. Below is that tree, with Bt206, C23 and MW_RSA852 highlighted.
+For some reason all the axis labels turned miniscule when I exported from MEGA5,
+but the conculsion is still obvious: while C23 and MW_RSA852 are outliers,
+Bt206, by straight consensus, is indistinguishable from the reference sequence,
+H99!</p>
+<p><img alt="Mitochondrial phylogeny" src="http://dl.dropbox.com/u/9283011/Whole_genome_tree.png" title="ML Tree" /></p>
             </div>
             <!-- /.entry-content -->
         </article>
