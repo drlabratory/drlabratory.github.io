@@ -3,7 +3,7 @@
       xmlns:og="http://ogp.me/ns#"
       xmlns:fb="https://www.facebook.com/2008/fbml">
 <head>
-    <title>Analyzing mitochondiral heteroplasmy of <i>C. neoformans</i> - Dr. LabRatOry's Open Science Notebook</title>
+    <title>Analyzing mitochondiral heteroplasmy of C. neoformans - Dr. LabRatOry's Open Science Notebook</title>
     <!-- Using the latest rendering mode for IE -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="utf-8">
@@ -13,16 +13,15 @@
     <!-- Open Graph tags -->
         <meta property="og:site_name" content="Dr. LabRatOry's Open Science Notebook" />
             <meta property="og:type" content="article"/>
-            <meta property="og:title" content="Analyzing mitochondiral heteroplasmy of <i>C. neoformans</i>"/>
+            <meta property="og:title" content="Analyzing mitochondiral heteroplasmy of C. neoformans"/>
             <meta property="og:url" content="http://drlabratory.github.io/analyzing-mito-hetero-3.html"/>
-            <meta property="og:description" content="System Message: WARNING/2 (/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst, line 2) Title underline too short. Analyzing mitochondiral heteroplasmy of &lt;i&gt;C. neoformans&lt;/i&gt; ############ Background I have genomic data collected on 10 strains of Cryptococcus neoformans, a human fungal pathogen. It was collected a few years ago, and is, in a word, terrible. It is SOLiD3 or SOLid4 50bp single end data, 20M-30M reads per sample, but a best half survive quality trimming. In an attempt to salvage something out of the data, I noticed that while coverage of the genome was pretty awful, coverage of the mitochondria wasn ..."/>
+            <meta property="og:description" content="Background I have genomic data collected on 10 strains of Cryptococcus neoformans, a human fungal pathogen. It was collected a few years ago, and is, in a word, terrible. It is SOLiD3 or SOLid4 50bp single end data, 20M-30M reads per sample, but a best half survive quality trimming. In an attempt to salvage something out of the data, I noticed that while coverage of the genome was pretty awful, coverage of the mitochondria wasn&#39;t bad. Even better, while mapping is very sensitive to using the right variant (var neoformans, common name JEC21 vs var grubii, common name H99 ..."/>
             <meta property="article:published_time" content="2013-02-21" />
                 <meta property="article:section" content="misc" />
                 <meta property="article:author" content="Jeramia Ory" />
 
     <!-- Bootstrap -->
         <link rel="stylesheet" href="http://drlabratory.github.io/theme/css/bootstrap.min.css" type="text/css"/>
-
     <link href="http://drlabratory.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
 
     <link href="http://drlabratory.github.io/theme/css/pygments/friendly.css" rel="stylesheet">
@@ -68,8 +67,8 @@ Dr. LabRatOry's Open Science Notebook            </a>
                 <h1>
                     <a href="http://drlabratory.github.io/analyzing-mito-hetero-3.html"
                        rel="bookmark"
-                       title="Permalink to Analyzing mitochondiral heteroplasmy of <i>C. neoformans</i>">
-                        Analyzing mitochondiral heteroplasmy of &lt;i&gt;C. neoformans&lt;/i&gt;
+                       title="Permalink to Analyzing mitochondiral heteroplasmy of C. neoformans">
+                        Analyzing mitochondiral heteroplasmy of C. neoformans
                     </a>
                 </h1>
             </header>
@@ -87,15 +86,7 @@ Dr. LabRatOry's Open Science Notebook            </a>
     
 </footer><!-- /.post-info -->                    </div>
                 </div>
-                <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 2)</p>
-<p>Title underline too short.</p>
-<pre class="literal-block">
-Analyzing mitochondiral heteroplasmy of &lt;i&gt;C. neoformans&lt;/i&gt;
-############
-</pre>
-</div>
-<div class="section" id="background">
+                <div class="section" id="background">
 <h2>Background</h2>
 <p>I have genomic data collected on 10 strains of <em>Cryptococcus
 neoformans</em>, a human fungal pathogen. It was collected a few years ago,
@@ -209,12 +200,17 @@ novoindex H99.nix H99.fasta
 <div class="system-message">
 <p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 155)</p>
 Line block ends without a blank line.</div>
-<p>and sdev when appropriate. Novoalign can use read length and sdev.
-Mapped all the read files seperately, as <a class="reference external" href="http://www.novocraft.com/wiki/tiki-view_forum_thread.php?topics_offset=1&amp;forumId=1&amp;comments_parentId=535">Novoalign
+<p>and sdev when appropriate. Novoalign can use read length and sdev.</p>
+<p>Mapped all the read files seperately, as <a class="reference external" href="http://www.novocraft.com/wiki/tiki-view_forum_thread.php?topics_offset=1&amp;forumId=1&amp;comments_parentId=535">Novoalign
 suggests</a>
-doing that and then merging the SAM files.
-| As it will take 2-3 days, running mapping from within python notebook
-seemed like a bad idea, hence the scripts.</p>
+doing that and then merging the SAM files.</p>
+<div class="line-block">
+<div class="line">As it will take 2-3 days, running mapping from within python notebook</div>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 162)</p>
+Line block ends without a blank line.</div>
+<p>seemed like a bad idea, hence the scripts.</p>
 <pre class="code python literal-block">
 <span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">ET</span>
 <span class="n">tree</span> <span class="o">=</span> <span class="n">ET</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">'SRP015886.xml'</span><span class="p">)</span>
@@ -250,7 +246,7 @@ seemed like a bad idea, hence the scripts.</p>
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 196)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 198)</p>
 Explicit markup ends without a blank line; unexpected unindent.</div>
 </div>
 <div class="section" id="screwed-up-and-missed-srr646261-srr646262-should-be-srr646261-srr646262">
@@ -259,7 +255,7 @@ Explicit markup ends without a blank line; unexpected unindent.</div>
 <div class="line">For reasons that aren't clear, certain runs are denoted in the XML</div>
 </div>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 200)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 202)</p>
 Line block ends without a blank line.</div>
 <p>file as a range (SRR646261-SRR646262 in this example, but there are
 others), while most are a list.
@@ -308,13 +304,13 @@ their associated SAM/BAM files.</p>
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 247)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 249)</p>
 Explicit markup ends without a blank line; unexpected unindent.</div>
 <div class="line-block">
 <div class="line">Damnit, apparently that link command doesn't work, need to write</div>
 </div>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 248)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 250)</p>
 Line block ends without a blank line.</div>
 <p>another cleanup script.
 | I've also noticed that the forum suggested sorting, then merging. This
@@ -357,7 +353,7 @@ merges, then sorts. Hrm.
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 289)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 291)</p>
 Explicit markup ends without a blank line; unexpected unindent.</div>
 </div>
 <div class="section" id="running-freebayes-with-ploidy-4">
@@ -397,7 +393,7 @@ Explicit markup ends without a blank line; unexpected unindent.</div>
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 327)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 329)</p>
 Explicit markup ends without a blank line; unexpected unindent.</div>
 </div>
 <div class="section" id="different-freebayes-run">
@@ -439,7 +435,7 @@ mitochondria in the cell as a mixed population of bacteria.</p>
 <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre>
 <div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 367)</p>
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/jeramiaory/git/pelican_github/content/SRA_alignment.rst</tt>, line 369)</p>
 Explicit markup ends without a blank line; unexpected unindent.</div>
 <p>OK! Now I have 27 vcf files, I need a way to visualize what is going on.
 Tomorrow I will post my visualization of the data in iPython notebook
